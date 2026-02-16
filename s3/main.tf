@@ -1,8 +1,8 @@
 terraform {
   required_providers {
     aws = {
-        source = "hashicorp/aws"
-        version = "~> 6.0"
+      source  = "hashicorp/aws"
+      version = "~> 6.0"
     }
   }
 }
@@ -13,9 +13,9 @@ provider "aws" {
 
 # create s3 bucket
 resource "aws_s3_bucket" "my-bucket" {
-  bucket = "mydemobuckentname"
+  bucket = "mydemobuckentname1602"
 
   tags = {
-    Name = "mys3bucket"
+    Enivronment = "Dev"
   }
 }
