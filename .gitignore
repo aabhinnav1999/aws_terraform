@@ -4,3 +4,4 @@
 .terraform.lock.hcl
 variables.tf
 .terraform/
+.terraform.tfstate.lock.info
