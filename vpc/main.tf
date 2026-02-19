@@ -66,6 +66,33 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
+# associate route table with private subnet
+resource "aws_route_table_association" "private" {
+  subnet_id      = aws_subnet.private.id
+  route_table_id = aws_route_table.public.id
+}
+
+# create nat gateway
+resource "aws_eip" "eip" {
+  domain = "vpc"
+}
+
+resource "aws_nat_gateway" "nat" {
+  allocation_id = aws_eip.eip.id
+  subnet_id     = aws_subnet.public.id
+
+  tags = {
+    Name = "demo-nat-gateway"
+  }
+}
+
+# create route for private subnet to access internet via nat gateway
+resource "aws_route" "private_internet_access" {
+  route_table_id         = aws_route_table.public.id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.nat.id
+}
+
 # create a security group for public instance
 resource "aws_security_group" "public_instance_sg" {
   name        = "public-instance-sg"
