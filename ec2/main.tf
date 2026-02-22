@@ -27,3 +27,21 @@ resource "aws_instance" "example" {
     volume_type = "gp3"
   }
 }
+
+# create multiple ec2 instances
+# resource "aws_instance" "example_multiple" {
+#   for_each = toset([1, 2, 3])
+#   ami                    = var.ami_id
+#   instance_type          = var.instance_type
+#   key_name               = var.key_name
+#   vpc_security_group_ids = var.security_group_ids
+
+#   tags = {
+#     Name = "my-web-server-${each.key}"
+#   }
+
+#   root_block_device {
+#     volume_size = 10
+#     volume_type = "gp3"
+#   }
+# }
