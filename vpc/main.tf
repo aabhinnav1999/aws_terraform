@@ -39,7 +39,7 @@ resource "aws_subnet" "private" {
   tags = {
     Name = "private-subnet"
   }
-} 
+}
 
 # create internet gateway
 resource "aws_internet_gateway" "gw" {
@@ -50,7 +50,7 @@ resource "aws_internet_gateway" "gw" {
   }
 }
 
-# create route table
+# create public route table
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.demo.id
 
@@ -58,6 +58,11 @@ resource "aws_route_table" "public" {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.gw.id
   }
+}
+
+# create private route table
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.demo.id
 }
 
 # associate route table with public subnet
@@ -69,7 +74,7 @@ resource "aws_route_table_association" "public" {
 # associate route table with private subnet
 resource "aws_route_table_association" "private" {
   subnet_id      = aws_subnet.private.id
-  route_table_id = aws_route_table.public.id
+  route_table_id = aws_route_table.private.id
 }
 
 # create nat gateway
@@ -88,15 +93,15 @@ resource "aws_nat_gateway" "nat" {
 
 # create route for private subnet to access internet via nat gateway
 resource "aws_route" "private_internet_access" {
-  route_table_id         = aws_route_table.public.id
+  route_table_id         = aws_route_table.private.id
   destination_cidr_block = "0.0.0.0/0"
   nat_gateway_id         = aws_nat_gateway.nat.id
 }
 
-# create a security group for public instance
-resource "aws_security_group" "public_instance_sg" {
-  name        = "public-instance-sg"
-  description = "Security group for public instance"
+# create a security group
+resource "aws_security_group" "instance_sg" {
+  name        = "instance-sg"
+  description = "Security group for ec2instance"
   vpc_id      = aws_vpc.demo.id
 
   ingress {
@@ -119,22 +124,4 @@ resource "aws_security_group" "public_instance_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-}
-
-# create ec2 instance in public subnet
-resource "aws_instance" "public_instance" {
-  ami           = "ami-03446a3af42c5e74e"
-  instance_type = "t2.micro"
-  subnet_id     = aws_subnet.public.id
-  key_name = "eu-west-1-kp"
-  vpc_security_group_ids = [aws_security_group.public_instance_sg.id]
-
-  tags = {
-    Name = "public-instance"
-  }
-}
-
-# output 
-output "ec2_public_ip" {
-  value = aws_instance.public_instance.public_ip
 }
