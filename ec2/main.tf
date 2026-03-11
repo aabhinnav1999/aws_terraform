@@ -28,6 +28,16 @@ resource "aws_instance" "example" {
   }
 }
 
+# create efs
+resource "aws_efs_file_system" "example" {
+  creation_token = "my-ec2-token"
+  performance_mode = "generalPurpose"
+
+  tags = {
+    Name = "my-ec2-efs"
+  }
+}
+
 # create multiple ec2 instances
 # resource "aws_instance" "example_multiple" {
 #   for_each = toset([1, 2, 3])
