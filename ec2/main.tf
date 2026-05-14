@@ -9,6 +9,7 @@ terraform {
 
 provider "aws" {
   region = "eu-west-1"
+  profile = "ec2-profile"
 }
 
 # create ec2 instance
@@ -19,7 +20,7 @@ resource "aws_instance" "example" {
   vpc_security_group_ids = var.security_group_ids
 
   tags = {
-    Name = "my-web-server"
+    Name = "my-server"
   }
 
   root_block_device {
@@ -29,14 +30,14 @@ resource "aws_instance" "example" {
 }
 
 # create efs
-resource "aws_efs_file_system" "example" {
-  creation_token = "my-ec2-token"
-  performance_mode = "generalPurpose"
+# resource "aws_efs_file_system" "example" {
+#   creation_token = "my-ec2-token"
+#   performance_mode = "generalPurpose"
 
-  tags = {
-    Name = "my-ec2-efs"
-  }
-}
+#   tags = {
+#     Name = "my-ec2-efs"
+#   }
+# }
 
 # create multiple ec2 instances
 # resource "aws_instance" "example_multiple" {
