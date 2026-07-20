@@ -20,13 +20,43 @@ resource "aws_instance" "example" {
   vpc_security_group_ids = var.security_group_ids
 
   tags = {
-    Name = "my-server"
+    Name = "my-web-server"
   }
 
   root_block_device {
     volume_size = 20
     volume_type = "gp3"
   }
+
+  # provisioner "file" {
+  #   source      = "docker.sh"
+  #   destination = "/tmp/docker.sh"
+
+  #   connection {
+  #     type        = "ssh"
+  #     user        = "ubuntu"
+  #     private_key = file(var.private_key_path)
+  #     host        = self.public_ip  
+  # }
+  # }
+
+  # provisioner "remote-exec" {
+  #   inline = [
+  #     "chmod +x /tmp/docker.sh",
+  #     "sudo /tmp/docker.sh"
+  #   ]
+
+  #   connection {
+  #     type        = "ssh"
+  #     user        = "ubuntu"
+  #     private_key = file(var.private_key_path)
+  #     host        = self.public_ip
+  #   } 
+  # }
+}
+
+output "public_ip" {
+  value = aws_instance.example.public_ip
 }
 
 # create efs
