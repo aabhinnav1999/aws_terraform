@@ -132,6 +132,10 @@ resource "aws_eks_node_group" "demo" {
   subnet_ids      = [aws_subnet.public-1.id, aws_subnet.public-2.id]
   instance_types  = ["t3.small"] # optional, default is "t3.medium"
 
+  # labels = {
+    # workload-type = "memory-optimized"
+  # }
+
   scaling_config {
     desired_size = 2
     max_size     = 5

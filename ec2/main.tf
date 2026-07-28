@@ -9,7 +9,7 @@ terraform {
 
 provider "aws" {
   region = "eu-west-1"
-  profile = "ec2-profile"
+  # profile = "ec2-profile"
 }
 
 # create ec2 instance
