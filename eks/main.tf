@@ -74,37 +74,6 @@ resource "aws_route_table_association" "public-2" {
   route_table_id = aws_route_table.public.id
 }
 
-resource "aws_security_group" "eks" {
-  name        = "${var.NAME}-sg"
-  description = "Security group for EKS cluster"
-  vpc_id      = aws_vpc.main.id
-
-  tags = {
-    "Name" = "${var.NAME}-sg"
-  }
-
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
 # create eks cluster
 resource "aws_eks_cluster" "demo" {
   name = "${var.NAME}-cluster"
