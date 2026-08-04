@@ -43,6 +43,17 @@ resource "aws_subnet" "public-2" {
   }
 }
 
+resource "aws_subnet" "public-3" {
+  vpc_id                  = aws_vpc.main.id
+  availability_zone       = "eu-west-1c"
+  cidr_block              = "10.0.3.0/24"
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "${var.NAME}-public-subnet-3"
+  }
+}
+
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
 
@@ -74,6 +85,11 @@ resource "aws_route_table_association" "public-2" {
   route_table_id = aws_route_table.public.id
 }
 
+resource "aws_route_table_association" "public-3" {
+  subnet_id      = aws_subnet.public-3.id
+  route_table_id = aws_route_table.public.id
+}
+
 # create eks cluster
 resource "aws_eks_cluster" "demo" {
   name = "${var.NAME}-cluster"
@@ -85,7 +101,7 @@ resource "aws_eks_cluster" "demo" {
   role_arn = var.eks_cluster_role_arn
 
   vpc_config {
-    subnet_ids = [aws_subnet.public-1.id, aws_subnet.public-2.id]
+    subnet_ids = [aws_subnet.public-1.id, aws_subnet.public-2.id, aws_subnet.public-3.id]
   }
 
   tags = {
@@ -98,7 +114,7 @@ resource "aws_eks_node_group" "demo" {
   cluster_name    = aws_eks_cluster.demo.name
   node_group_name = "${var.NAME}-node-group"
   node_role_arn   = var.node_group_role_arn
-  subnet_ids      = [aws_subnet.public-1.id, aws_subnet.public-2.id]
+  subnet_ids      = [aws_subnet.public-1.id, aws_subnet.public-2.id, aws_subnet.public-3.id]
   instance_types  = ["t3.small"] # optional, default is "t3.medium"
 
   # labels = {
@@ -153,7 +169,7 @@ resource "aws_eks_access_policy_association" "access_policy_association_2" {
 #   addon_name   = "eks-pod-identity-agent"
 # }
 
-# data "aws_iam_policy_document" "ebs_csi_pod_identity_trust" {
+# data "aws_iam_policy_document" "pod_identity_trust" {
 #   statement {
 #     effect  = "Allow"
 #     actions = ["sts:AssumeRole", "sts:TagSession"]
@@ -165,28 +181,51 @@ resource "aws_eks_access_policy_association" "access_policy_association_2" {
 #   }
 # }
 
-# resource "aws_iam_role" "ebs_csi_pod_identity" {
-#   name               = "${aws_eks_cluster.demo.name}-ebs-csi-driver-role-podidentity"
-#   assume_role_policy = data.aws_iam_policy_document.ebs_csi_pod_identity_trust.json
+# resource "aws_eks_addon" "efs_csi_driver" {
+#   cluster_name = aws_eks_cluster.demo.name
+#   addon_name   = "aws-efs-csi-driver"
 # }
 
-# resource "aws_iam_role_policy_attachment" "ebs_csi_pod_identity" {
-#   role       = aws_iam_role.ebs_csi_pod_identity.name
+
+# resource "aws_iam_role" "efs_csi_pod_identity_role" {
+#   name               = "tf-efs-csi-driver-role"
+#   assume_role_policy = data.aws_iam_policy_document.pod_identity_trust.json
+# }
+
+# resource "aws_iam_role_policy_attachment" "efs_csi_pod_identity_policy_attachment" {
+#   role       = aws_iam_role.efs_csi_pod_identity_role.name
+#   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEFSCSIDriverPolicy"
+# }
+
+# resource "aws_eks_pod_identity_association" "efs_csi_association" {
+#   cluster_name    = aws_eks_cluster.demo.name
+#   namespace       = "kube-system"
+#   service_account = "efs-csi-controller-sa"
+#   role_arn        = aws_iam_role.efs_csi_pod_identity_role.arn
+
+#   depends_on = [aws_eks_addon.efs_csi_driver]
+# }
+
+# resource "aws_eks_addon" "ebs_csi_driver" {
+#   cluster_name = aws_eks_cluster.demo.name
+#   addon_name   = "aws-ebs-csi-driver"
+# }
+
+# resource "aws_iam_role" "ebs_csi_pod_identity_role" {
+#   name               = "tf-ebs-csi-driver-role"
+#   assume_role_policy = data.aws_iam_policy_document.pod_identity_trust.json
+# }
+
+# resource "aws_iam_role_policy_attachment" "ebs_csi_pod_identity_policy_attachment" {
+#   role       = aws_iam_role.ebs_csi_pod_identity_role.name
 #   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
 # }
 
-# resource "aws_eks_addon" "ebs_csi_pod_identity" {
-#   cluster_name = aws_eks_cluster.demo.name
-#   addon_name   = "aws-ebs-csi-driver"
-
-#   depends_on = [aws_eks_addon.pod_identity_agent]
-# }
-
-# resource "aws_eks_pod_identity_association" "ebs_csi" {
+# resource "aws_eks_pod_identity_association" "ebs_csi_association" {
 #   cluster_name    = aws_eks_cluster.demo.name
 #   namespace       = "kube-system"
 #   service_account = "ebs-csi-controller-sa"
-#   role_arn        = aws_iam_role.ebs_csi_pod_identity.arn
+#   role_arn        = aws_iam_role.ebs_csi_pod_identity_role.arn
 
-#   depends_on = [aws_eks_addon.ebs_csi_pod_identity]
+#   depends_on = [aws_eks_addon.ebs_csi_driver]
 # }
