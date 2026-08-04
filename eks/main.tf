@@ -184,6 +184,9 @@ resource "aws_eks_access_policy_association" "access_policy_association_2" {
 # resource "aws_eks_addon" "efs_csi_driver" {
 #   cluster_name = aws_eks_cluster.demo.name
 #   addon_name   = "aws-efs-csi-driver"
+
+#   depends_on = [aws_eks_pod_identity_association.efs_csi_association]
+
 # }
 
 
@@ -203,12 +206,15 @@ resource "aws_eks_access_policy_association" "access_policy_association_2" {
 #   service_account = "efs-csi-controller-sa"
 #   role_arn        = aws_iam_role.efs_csi_pod_identity_role.arn
 
-#   depends_on = [aws_eks_addon.efs_csi_driver]
+#   depends_on = [aws_eks_addon.pod_identity_agent]
 # }
 
 # resource "aws_eks_addon" "ebs_csi_driver" {
 #   cluster_name = aws_eks_cluster.demo.name
 #   addon_name   = "aws-ebs-csi-driver"
+
+#   depends_on = [aws_eks_pod_identity_association.ebs_csi_association]
+
 # }
 
 # resource "aws_iam_role" "ebs_csi_pod_identity_role" {
@@ -227,5 +233,5 @@ resource "aws_eks_access_policy_association" "access_policy_association_2" {
 #   service_account = "ebs-csi-controller-sa"
 #   role_arn        = aws_iam_role.ebs_csi_pod_identity_role.arn
 
-#   depends_on = [aws_eks_addon.ebs_csi_driver]
+#   depends_on = [aws_eks_addon.pod_identity_agent]
 # }
