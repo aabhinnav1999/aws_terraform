@@ -107,30 +107,55 @@ resource "aws_eks_cluster" "demo" {
   tags = {
     Name = "${var.NAME}-cluster"
   }
+
+  # eks auto mode configuration
+
+  bootstrap_self_managed_addons = false
+
+  compute_config {
+    enabled       = true
+    node_pools    = ["general-purpose", "system"]
+    node_role_arn = var.auto_mode_node_role_arn
+  }
+
+  # Auto Mode: required to go with compute_config
+  kubernetes_network_config {
+    elastic_load_balancing {
+      enabled = true
+    }
+  }
+
+  # Auto Mode: required to go with compute_config
+  storage_config {
+    block_storage {
+      enabled = true
+    }
+  }
+
 }
 
 
-resource "aws_eks_node_group" "demo" {
-  cluster_name    = aws_eks_cluster.demo.name
-  node_group_name = "${var.NAME}-node-group"
-  node_role_arn   = var.node_group_role_arn
-  subnet_ids      = [aws_subnet.public-1.id, aws_subnet.public-2.id, aws_subnet.public-3.id]
-  instance_types  = ["t3.small"] # optional, default is "t3.medium"
+# resource "aws_eks_node_group" "demo" {
+#   cluster_name    = aws_eks_cluster.demo.name
+#   node_group_name = "${var.NAME}-node-group"
+#   node_role_arn   = var.node_group_role_arn
+#   subnet_ids      = [aws_subnet.public-1.id, aws_subnet.public-2.id, aws_subnet.public-3.id]
+#   instance_types  = ["t3.small"] # optional, default is "t3.medium"
 
-  # labels = {
-    # workload-type = "memory-optimized"
-  # }
+#   # labels = {
+#     # workload-type = "memory-optimized"
+#   # }
 
-  scaling_config {
-    desired_size = 2
-    max_size     = 5
-    min_size     = 2
-  }
+#   scaling_config {
+#     desired_size = 2
+#     max_size     = 5
+#     min_size     = 2
+#   }
 
-  update_config {
-    max_unavailable = 1
-  }
-}
+#   update_config {
+#     max_unavailable = 1
+#   }
+# }
 
 resource "aws_eks_access_entry" "access_1" {
   cluster_name      = aws_eks_cluster.demo.name
