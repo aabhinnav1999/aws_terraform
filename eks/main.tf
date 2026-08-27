@@ -142,18 +142,19 @@ resource "aws_eks_node_group" "demo-1" {
   node_group_name = "${var.NAME}-node-group"
   node_role_arn   = var.node_group_role_arn
   subnet_ids      = [aws_subnet.public-1.id, aws_subnet.public-2.id, aws_subnet.public-3.id]
-  instance_types  = ["t3.micro"] # optional, default is "t3.medium"
+  instance_types  = ["t3.small"] # optional, default is "t3.medium"
 
-  remote_access {
-    ec2_ssh_key               = var.worker_nodes_key
-  }
+  # remote_access {
+  #   ec2_ssh_key               = var.worker_nodes_key
+  # }
 
   labels = {
     environment = "dev",
+    family      = "t3.small",
   }
 
   scaling_config {
-    desired_size = 2
+    desired_size = 1
     max_size     = 5
     min_size     = 1
   }
@@ -163,26 +164,25 @@ resource "aws_eks_node_group" "demo-1" {
   }
 }
 
-# resource "aws_eks_node_group" "demo-2" {
-#   cluster_name    = aws_eks_cluster.demo.name
-#   node_group_name = "${var.NAME}-node-group-2"
-#   node_role_arn   = var.node_group_role_arn
-#   subnet_ids      = [aws_subnet.public-1.id, aws_subnet.public-2.id, aws_subnet.public-3.id]
-#   instance_types  = ["t2.micro"]
+resource "aws_eks_node_group" "demo-2" {
+  cluster_name    = aws_eks_cluster.demo.name
+  node_group_name = "${var.NAME}-node-group-2"
+  node_role_arn   = var.node_group_role_arn
+  subnet_ids      = [aws_subnet.public-1.id, aws_subnet.public-2.id, aws_subnet.public-3.id]
+  instance_types  = ["t2.small"]
 
-#   labels = {
-#     family      = "t2.micro",
-#     environment = "dev",
-#     app         = "ecommerce"
-#   }
+  labels = {
+    family      = "t2.small",
+    environment = "test",
+  }
 
-#   scaling_config {
-#     desired_size = 1
-#     max_size     = 5
-#     min_size     = 1
-#   }
+  scaling_config {
+    desired_size = 1
+    max_size     = 5
+    min_size     = 1
+  }
 
-# }
+}
 
 # resource "aws_eks_node_group" "demo-3" {
 #   cluster_name    = aws_eks_cluster.demo.name
