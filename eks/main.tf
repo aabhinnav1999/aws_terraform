@@ -13,7 +13,7 @@ provider "aws" {
 
 # create vpc
 resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
+  cidr_block = "172.16.0.0/16"
 
   tags = {
     Name = "${var.NAME}-vpc"
@@ -23,7 +23,7 @@ resource "aws_vpc" "main" {
 
 resource "aws_subnet" "public-1" {
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.1.0/24"
+  cidr_block              = "172.16.1.0/24"
   availability_zone       = "eu-west-1a"
   map_public_ip_on_launch = true
 
@@ -35,7 +35,7 @@ resource "aws_subnet" "public-1" {
 resource "aws_subnet" "public-2" {
   vpc_id                  = aws_vpc.main.id
   availability_zone       = "eu-west-1b"
-  cidr_block              = "10.0.2.0/24"
+  cidr_block              = "172.16.2.0/24"
   map_public_ip_on_launch = true
 
   tags = {
@@ -46,7 +46,7 @@ resource "aws_subnet" "public-2" {
 resource "aws_subnet" "public-3" {
   vpc_id                  = aws_vpc.main.id
   availability_zone       = "eu-west-1c"
-  cidr_block              = "10.0.3.0/24"
+  cidr_block              = "172.16.3.0/24"
   map_public_ip_on_launch = true
 
   tags = {
@@ -112,77 +112,77 @@ resource "aws_eks_cluster" "demo" {
 
   # eks auto mode configuration
 
-  # bootstrap_self_managed_addons = false
+  bootstrap_self_managed_addons = false
 
-  # compute_config {
-  #   enabled       = true
-  #   node_pools    = ["general-purpose", "system"]
-  #   node_role_arn = var.auto_mode_node_role_arn
-  # }
-
-  # # Auto Mode: required to go with compute_config
-  # kubernetes_network_config {
-  #   elastic_load_balancing {
-  #     enabled = true
-  #   }
-  # }
-
-  # # Auto Mode: required to go with compute_config
-  # storage_config {
-  #   block_storage {
-  #     enabled = true
-  #   }
-  # }
-
-}
-
-
-resource "aws_eks_node_group" "demo-1" {
-  cluster_name    = aws_eks_cluster.demo.name
-  node_group_name = "${var.NAME}-node-group"
-  node_role_arn   = var.node_group_role_arn
-  subnet_ids      = [aws_subnet.public-1.id, aws_subnet.public-2.id, aws_subnet.public-3.id]
-  instance_types  = ["t3.small"] # optional, default is "t3.medium"
-
-  # remote_access {
-  #   ec2_ssh_key               = var.worker_nodes_key
-  # }
-
-  labels = {
-    environment = "dev",
-    family      = "t3.small",
+  compute_config {
+    enabled       = true
+    node_pools    = ["general-purpose", "system"]
+    node_role_arn = var.auto_mode_node_role_arn
   }
 
-  scaling_config {
-    desired_size = 1
-    max_size     = 5
-    min_size     = 1
+  # Auto Mode: required to go with compute_config
+  kubernetes_network_config {
+    elastic_load_balancing {
+      enabled = true
+    }
   }
 
-  update_config {
-    max_unavailable = 1
-  }
-}
-
-resource "aws_eks_node_group" "demo-2" {
-  cluster_name    = aws_eks_cluster.demo.name
-  node_group_name = "${var.NAME}-node-group-2"
-  node_role_arn   = var.node_group_role_arn
-  subnet_ids      = [aws_subnet.public-1.id, aws_subnet.public-2.id, aws_subnet.public-3.id]
-  instance_types  = ["t2.small"]
-
-  labels = {
-    family      = "t2.small",
-    environment = "test",
-  }
-
-  scaling_config {
-    desired_size = 1
-    max_size     = 5
-    min_size     = 1
+  # Auto Mode: required to go with compute_config
+  storage_config {
+    block_storage {
+      enabled = true
+    }
   }
 
 }
+
+
+# resource "aws_eks_node_group" "demo-1" {
+#   cluster_name    = aws_eks_cluster.demo.name
+#   node_group_name = "${var.NAME}-node-group"
+#   node_role_arn   = var.node_group_role_arn
+#   subnet_ids      = [aws_subnet.public-1.id, aws_subnet.public-2.id, aws_subnet.public-3.id]
+#   instance_types  = ["t3.small"] # optional, default is "t3.medium"
+
+#   # remote_access {
+#   #   ec2_ssh_key               = var.worker_nodes_key
+#   # }
+
+#   labels = {
+#     environment = "dev",
+#     family      = "t3.small",
+#   }
+
+#   scaling_config {
+#     desired_size = 1
+#     max_size     = 5
+#     min_size     = 1
+#   }
+
+#   update_config {
+#     max_unavailable = 1
+#   }
+# }
+
+# resource "aws_eks_node_group" "demo-2" {
+#   cluster_name    = aws_eks_cluster.demo.name
+#   node_group_name = "${var.NAME}-node-group-2"
+#   node_role_arn   = var.node_group_role_arn
+#   subnet_ids      = [aws_subnet.public-1.id, aws_subnet.public-2.id, aws_subnet.public-3.id]
+#   instance_types  = ["t2.small"]
+
+#   labels = {
+#     family      = "t2.small",
+#     environment = "test",
+#   }
+
+#   scaling_config {
+#     desired_size = 1
+#     max_size     = 5
+#     min_size     = 1
+#   }
+
+# }
 
 # resource "aws_eks_node_group" "demo-3" {
 #   cluster_name    = aws_eks_cluster.demo.name
