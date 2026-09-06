@@ -79,8 +79,8 @@ kubeadm version
 kubelet --version
 kubectl version --client
 
-# change this command
+# Update this command
 
-# sudo kubeadm join 172.16.1.109:6443 \
-#   --token fquvn7.6j97ewlsiyzsxjko \
-#   --discovery-token-ca-cert-hash sha256:b3c02e5b2b3c05df523ee95b04295a7d8649682ca925f7b67bdb2a01494e5970
+# sudo kubeadm join private-ip:6443 \
+#   --token <token_value> \
+#   --discovery-token-ca-cert-hash sha256:<hash_value>
