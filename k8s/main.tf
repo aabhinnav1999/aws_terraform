@@ -252,3 +252,108 @@ resource "aws_instance" "nginx" {
   }
 
 }
+
+resource "aws_security_group" "k8s_worker_sg" {
+  name        = "k8s-worker-sg"
+  description = "Security group for Kubernetes worker nodes"
+  vpc_id      = aws_vpc.example.id
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 30000
+    to_port     = 32767
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow NodePort access from the internet"
+  }
+
+  ingress {
+    from_port   = 10250
+    to_port     = 10250
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.example.cidr_block]
+    description = "Allow kubelet API access from within the VPC"
+  }
+
+  ingress {
+    from_port   = 10256
+    to_port     = 10256
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.example.cidr_block]
+    description = "Allow kube-proxy access from within the VPC"
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+variable "worker_count" {
+  description = "Number of worker nodes to create"
+  type        = number
+  default     = 4
+}
+
+locals {
+  workers = {
+    for idx in range(var.worker_count) :
+    idx => {
+      name   = "worker-node-${idx + 1}"
+      az     = var.availability_zones[idx % length(var.availability_zones)]
+      subnet = local.subnet_ids[idx % length(local.subnet_ids)]
+    }
+  }
+}
+
+resource "aws_instance" "k8s_worker" {
+  for_each = local.workers
+
+  ami                         = var.ami_id
+  instance_type               = var.worker_instance_type
+  key_name                    = var.key_name
+  subnet_id                   = each.value.subnet
+  vpc_security_group_ids      = [aws_security_group.k8s_worker_sg.id]
+  availability_zone           = each.value.az
+  associate_public_ip_address = true
+
+  tags = {
+    Name = each.value.name
+    Role = "worker"
+  }
+
+  connection {
+    type        = "ssh"
+    user        = var.ssh_user
+    private_key = file(var.private_key_path)
+    host        = self.public_ip
+    timeout     = "3m"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo hostnamectl set-hostname ${each.value.name}",
+      "echo '127.0.0.1 ${each.value.name}' | sudo tee -a /etc/hosts",
+    ]
+  }
+
+  provisioner "file" {
+    source      = "k8s_worker.sh"
+    destination = "/tmp/k8s_worker.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /tmp/k8s_worker.sh",
+      "sudo /tmp/k8s_worker.sh",
+    ]
+  }
+}
