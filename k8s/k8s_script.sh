@@ -30,8 +30,8 @@ sysctl net.bridge.bridge-nf-call-iptables net.bridge.bridge-nf-call-ip6tables ne
 
 # Install container runtime
 
-curl -LO https://github.com/containerd/containerd/releases/download/v1.7.14/containerd-1.7.14-linux-amd64.tar.gz
-sudo tar Cxzvf /usr/local containerd-1.7.14-linux-amd64.tar.gz
+curl -LO https://github.com/containerd/containerd/releases/download/v2.3.4/containerd-2.3.4-linux-amd64.tar.gz
+sudo tar Cxzvf /usr/local containerd-2.3.4-linux-amd64.tar.gz
 curl -LO https://raw.githubusercontent.com/containerd/containerd/main/containerd.service
 sudo mkdir -p /usr/local/lib/systemd/system/
 sudo mv containerd.service /usr/local/lib/systemd/system/
@@ -46,14 +46,14 @@ sudo systemctl enable --now containerd
 
 # Install runc
 
-curl -LO https://github.com/opencontainers/runc/releases/download/v1.1.12/runc.amd64
+curl -LO https://github.com/opencontainers/runc/releases/download/v1.5.0/runc.amd64
 sudo install -m 755 runc.amd64 /usr/local/sbin/runc
 
 # Install CNI plugin
 
-curl -LO https://github.com/containernetworking/plugins/releases/download/v1.5.0/cni-plugins-linux-amd64-v1.5.0.tgz
+curl -LO https://github.com/containernetworking/plugins/releases/download/v1.9.1/cni-plugins-linux-amd64-v1.9.1.tgz
 sudo mkdir -p /opt/cni/bin
-sudo tar Cxzvf /opt/cni/bin cni-plugins-linux-amd64-v1.5.0.tgz
+sudo tar Cxzvf /opt/cni/bin cni-plugins-linux-amd64-v1.9.1.tgz
 
 # Step 1: Update system and install required packages
 sudo apt-get update
@@ -61,15 +61,15 @@ sudo apt-get install -y apt-transport-https ca-certificates curl gpg
 
 # Step 2: Add Kubernetes apt repository
 sudo mkdir -p /etc/apt/keyrings
-curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.33/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.36/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 
-echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.33/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.36/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
 
 # Step 3: Update package list
 sudo apt-get update
 
 # Step 4: Install specific Kubernetes versions (adjust version if needed)
-sudo apt-get install -y kubelet=1.33.0-1.1 kubeadm=1.33.0-1.1 kubectl=1.33.0-1.1 --allow-downgrades --allow-change-held-packages
+sudo apt-get install -y kubelet=1.36.4-1.1 kubeadm=1.36.4-1.1 kubectl=1.36.4-1.1 --allow-downgrades --allow-change-held-packages
 
 # Step 5: Hold the package versions to prevent upgrades
 sudo apt-mark hold kubelet kubeadm kubectl
@@ -86,6 +86,12 @@ kubectl version --client
 #   --upload-certs \
 #   --pod-network-cidr=192.168.0.0/16 \
 #   --apiserver-advertise-address=<private-ip-of-this-ec2-instance>
+
+# For single master node, run this command instead of the above command
+
+# sudo kubeadm init --pod-network-cidr=192.168.0.0/16 
+# (or)
+# sudo kubeadm init --pod-network-cidr=192.168.0.0/16 --ignore-preflight-errors=Mem
 
 # kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/tigera-operator.yaml
 # curl https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/custom-resources.yaml -O
