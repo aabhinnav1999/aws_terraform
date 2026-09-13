@@ -159,6 +159,17 @@ variable "availability_zones" {
   default = ["eu-west-1a", "eu-west-1b", "eu-west-1c"]
 }
 
+variable "master_count" {
+  description = "Number of master nodes to create (1-3). Leader is always assigned among them."
+  type        = number
+  # default     = 3
+
+  validation {
+    condition     = var.master_count >= 1 && var.master_count <= 3
+    error_message = "master_count must be between 1 and 3 (limited by number of AZs)."
+  }
+}
+
 locals {
   master_names = ["k8s-master-leader", "k8s-master-2", "k8s-master-3"]
 }
@@ -171,27 +182,26 @@ locals {
   ]
 }
 
-# Randomly shuffle the names so the "leader" label lands on a random AZ/instance
+# Only shuffle among as many names as we actually need, so the leader
+# is always guaranteed to be picked no matter how many masters you spin up
 resource "random_shuffle" "master_name_assignment" {
   input        = local.master_names
-  result_count = 3
+  result_count = var.master_count
 }
 
-# Build a map keyed by AZ index so each master gets a fixed AZ + a shuffled name
+# Build a map for just the first N AZs/subnets (N = master_count)
 locals {
   masters = {
-    for idx, az in var.availability_zones :
+    for idx in range(var.master_count) :
     idx => {
-      az     = az
+      az     = var.availability_zones[idx]
       subnet = local.subnet_ids[idx]
       name   = random_shuffle.master_name_assignment.result[idx]
     }
   }
 }
 
-
 resource "aws_instance" "k8s_master" {
-
   for_each = local.masters
 
   ami                    = var.ami_id
@@ -219,13 +229,18 @@ resource "aws_instance" "k8s_master" {
     timeout     = "3m"
   }
 
-  # copy the local script to the instance
   provisioner "file" {
     source      = "k8s_script.sh"
     destination = "/tmp/k8s_script.sh"
   }
 
-  # make it executable and run it
+  provisioner "remote-exec" {
+    inline = [
+      "sudo hostnamectl set-hostname ${each.value.name}",
+      "echo '127.0.0.1 ${each.value.name}' | sudo tee -a /etc/hosts",
+    ]
+  }
+
   provisioner "remote-exec" {
     inline = [
       "chmod +x /tmp/k8s_script.sh",
@@ -234,24 +249,24 @@ resource "aws_instance" "k8s_master" {
   }
 }
 
-resource "aws_instance" "nginx" {
+# resource "aws_instance" "nginx" {
 
-  ami                    = var.ami_id
-  instance_type          = "t3.micro"
-  key_name               = var.key_name
-  vpc_security_group_ids = [aws_security_group.k8s_master_sg.id]
-  subnet_id              = aws_subnet.public-1.id
+#   ami                    = var.ami_id
+#   instance_type          = "t3.micro"
+#   key_name               = var.key_name
+#   vpc_security_group_ids = [aws_security_group.k8s_master_sg.id]
+#   subnet_id              = aws_subnet.public-1.id
 
-  tags = {
-    Name = "Nginx-Server"
-  }
+#   tags = {
+#     Name = "Nginx-Server"
+#   }
 
-  root_block_device {
-    volume_size = 10
-    volume_type = "gp3"
-  }
+#   root_block_device {
+#     volume_size = 10
+#     volume_type = "gp3"
+#   }
 
-}
+# }
 
 resource "aws_security_group" "k8s_worker_sg" {
   name        = "k8s-worker-sg"
@@ -300,7 +315,7 @@ resource "aws_security_group" "k8s_worker_sg" {
 variable "worker_count" {
   description = "Number of worker nodes to create"
   type        = number
-  default     = 4
+  # default     = 2
 }
 
 locals {
