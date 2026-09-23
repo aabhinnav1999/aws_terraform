@@ -112,57 +112,57 @@ resource "aws_eks_cluster" "demo" {
 
   # eks auto mode configuration
 
-  bootstrap_self_managed_addons = false
+  # bootstrap_self_managed_addons = false
 
-  compute_config {
-    enabled       = true
-    node_pools    = ["general-purpose", "system"]
-    node_role_arn = var.auto_mode_node_role_arn
-  }
+  # compute_config {
+  #   enabled       = true
+  #   node_pools    = ["general-purpose", "system"]
+  #   node_role_arn = var.auto_mode_node_role_arn
+  # }
 
-  # Auto Mode: required to go with compute_config
-  kubernetes_network_config {
-    elastic_load_balancing {
-      enabled = true
-    }
-  }
+  # # Auto Mode: required to go with compute_config
+  # kubernetes_network_config {
+  #   elastic_load_balancing {
+  #     enabled = true
+  #   }
+  # }
 
-  # Auto Mode: required to go with compute_config
-  storage_config {
-    block_storage {
-      enabled = true
-    }
-  }
+  # # Auto Mode: required to go with compute_config
+  # storage_config {
+  #   block_storage {
+  #     enabled = true
+  #   }
+  # }
 
 }
 
 
-# resource "aws_eks_node_group" "demo-1" {
-#   cluster_name    = aws_eks_cluster.demo.name
-#   node_group_name = "${var.NAME}-node-group"
-#   node_role_arn   = var.node_group_role_arn
-#   subnet_ids      = [aws_subnet.public-1.id, aws_subnet.public-2.id, aws_subnet.public-3.id]
-#   instance_types  = ["t3.small"] # optional, default is "t3.medium"
+resource "aws_eks_node_group" "demo-1" {
+  cluster_name    = aws_eks_cluster.demo.name
+  node_group_name = "${var.NAME}-node-group"
+  node_role_arn   = var.node_group_role_arn
+  subnet_ids      = [aws_subnet.public-1.id, aws_subnet.public-2.id, aws_subnet.public-3.id]
+  instance_types  = ["t3.small"] # optional, default is "t3.medium"
 
-#   # remote_access {
-#   #   ec2_ssh_key               = var.worker_nodes_key
-#   # }
+  # remote_access {
+  #   ec2_ssh_key               = var.worker_nodes_key
+  # }
 
-#   labels = {
-#     environment = "dev",
-#     family      = "t3.small",
-#   }
+  labels = {
+    environment = "dev",
+    family      = "t3.small",
+  }
 
-#   scaling_config {
-#     desired_size = 1
-#     max_size     = 5
-#     min_size     = 1
-#   }
+  scaling_config {
+    desired_size = 1
+    max_size     = 5
+    min_size     = 1
+  }
 
-#   update_config {
-#     max_unavailable = 1
-#   }
-# }
+  update_config {
+    max_unavailable = 1
+  }
+}
 
 # resource "aws_eks_node_group" "demo-2" {
 #   cluster_name    = aws_eks_cluster.demo.name
@@ -214,7 +214,7 @@ resource "aws_eks_access_entry" "access_1" {
 resource "aws_eks_access_policy_association" "access_policy_association_1" {
   cluster_name  = aws_eks_cluster.demo.name
   policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-  principal_arn = var.access_entry_1
+  principal_arn = aws_eks_access_entry.access_1.principal_arn
 
   access_scope {
     type = "cluster"
@@ -230,29 +230,29 @@ resource "aws_eks_access_entry" "access_2" {
 resource "aws_eks_access_policy_association" "access_policy_association_2" {
   cluster_name  = aws_eks_cluster.demo.name
   policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-  principal_arn = var.access_entry_2
+  principal_arn = aws_eks_access_entry.access_2.principal_arn
 
   access_scope {
     type = "cluster"
   }
 }
 
-# resource "aws_eks_addon" "pod_identity_agent" {
-#   cluster_name = aws_eks_cluster.demo.name
-#   addon_name   = "eks-pod-identity-agent"
-# }
+resource "aws_eks_addon" "pod_identity_agent" {
+  cluster_name = aws_eks_cluster.demo.name
+  addon_name   = "eks-pod-identity-agent"
+}
 
-# data "aws_iam_policy_document" "pod_identity_trust" {
-#   statement {
-#     effect  = "Allow"
-#     actions = ["sts:AssumeRole", "sts:TagSession"]
+data "aws_iam_policy_document" "pod_identity_trust" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole", "sts:TagSession"]
 
-#     principals {
-#       type        = "Service"
-#       identifiers = ["pods.eks.amazonaws.com"]
-#     }
-#   }
-# }
+    principals {
+      type        = "Service"
+      identifiers = ["pods.eks.amazonaws.com"]
+    }
+  }
+}
 
 # resource "aws_eks_addon" "efs_csi_driver" {
 #   cluster_name = aws_eks_cluster.demo.name
@@ -307,4 +307,18 @@ resource "aws_eks_access_policy_association" "access_policy_association_2" {
 #   role_arn        = aws_iam_role.ebs_csi_pod_identity_role.arn
 
 #   depends_on = [aws_eks_addon.pod_identity_agent]
+# }
+
+
+# create an EKS addon for the VPC CNI plugin with network policy enabled
+
+# resource "aws_eks_addon" "vpc_cni" {
+#   cluster_name = aws_eks_cluster.demo.name
+#   addon_name   = "vpc-cni"
+
+#   configuration_values = jsonencode({
+#     enableNetworkPolicy = "true"
+#   })
+
+#   resolve_conflicts_on_update = "OVERWRITE"
 # }
