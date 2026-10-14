@@ -154,9 +154,9 @@ resource "aws_eks_node_group" "demo-1" {
   }
 
   scaling_config {
-    desired_size = 1
+    desired_size = 2
     max_size     = 5
-    min_size     = 1
+    min_size     = 2
   }
 
   update_config {
@@ -282,32 +282,32 @@ data "aws_iam_policy_document" "pod_identity_trust" {
 #   depends_on = [aws_eks_addon.pod_identity_agent]
 # }
 
-# resource "aws_eks_addon" "ebs_csi_driver" {
-#   cluster_name = aws_eks_cluster.demo.name
-#   addon_name   = "aws-ebs-csi-driver"
+resource "aws_eks_addon" "ebs_csi_driver" {
+  cluster_name = aws_eks_cluster.demo.name
+  addon_name   = "aws-ebs-csi-driver"
 
-#   depends_on = [aws_eks_pod_identity_association.ebs_csi_association]
+  depends_on = [aws_eks_pod_identity_association.ebs_csi_association]
 
-# }
+}
 
-# resource "aws_iam_role" "ebs_csi_pod_identity_role" {
-#   name               = "tf-ebs-csi-driver-role"
-#   assume_role_policy = data.aws_iam_policy_document.pod_identity_trust.json
-# }
+resource "aws_iam_role" "ebs_csi_pod_identity_role" {
+  name               = "tf-ebs-csi-driver-role"
+  assume_role_policy = data.aws_iam_policy_document.pod_identity_trust.json
+}
 
-# resource "aws_iam_role_policy_attachment" "ebs_csi_pod_identity_policy_attachment" {
-#   role       = aws_iam_role.ebs_csi_pod_identity_role.name
-#   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
-# }
+resource "aws_iam_role_policy_attachment" "ebs_csi_pod_identity_policy_attachment" {
+  role       = aws_iam_role.ebs_csi_pod_identity_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+}
 
-# resource "aws_eks_pod_identity_association" "ebs_csi_association" {
-#   cluster_name    = aws_eks_cluster.demo.name
-#   namespace       = "kube-system"
-#   service_account = "ebs-csi-controller-sa"
-#   role_arn        = aws_iam_role.ebs_csi_pod_identity_role.arn
+resource "aws_eks_pod_identity_association" "ebs_csi_association" {
+  cluster_name    = aws_eks_cluster.demo.name
+  namespace       = "kube-system"
+  service_account = "ebs-csi-controller-sa"
+  role_arn        = aws_iam_role.ebs_csi_pod_identity_role.arn
 
-#   depends_on = [aws_eks_addon.pod_identity_agent]
-# }
+  depends_on = [aws_eks_addon.pod_identity_agent]
+}
 
 
 # create an EKS addon for the VPC CNI plugin with network policy enabled
