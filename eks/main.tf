@@ -91,6 +91,71 @@ resource "aws_route_table_association" "public-3" {
   route_table_id = aws_route_table.public.id
 }
 
+# private subnets
+
+resource "aws_subnet" "private-1" {
+  vpc_id                  = aws_vpc.main.id
+  availability_zone       = "eu-west-1a"
+  cidr_block              = "172.16.9.0/24"
+  map_public_ip_on_launch = false
+
+  tags = {
+    Name = "${var.NAME}-private-subnet-1"
+  }
+}
+
+resource "aws_subnet" "private-2" {
+  vpc_id                  = aws_vpc.main.id
+  availability_zone       = "eu-west-1b"
+  cidr_block              = "172.16.27.0/24"
+  map_public_ip_on_launch = false
+
+  tags = {
+    Name = "${var.NAME}-private-subnet-2"
+  }
+}
+
+resource "aws_eip" "nat" {
+
+  domain = "vpc"
+
+  tags = {
+    Name = "${var.NAME}-nat-eip"
+  }
+}
+
+resource "aws_nat_gateway" "nat" {
+  allocation_id = aws_eip.nat.id
+  subnet_id     = aws_subnet.public-1.id
+
+  tags = {
+    Name = "${var.NAME}-nat-gateway"
+  }
+}
+
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.nat.id
+  }
+
+  tags = {
+    Name = "${var.NAME}-private-route-table"
+  }
+}
+
+resource "aws_route_table_association" "private-1" {
+  subnet_id      = aws_subnet.private-1.id
+  route_table_id = aws_route_table.private.id
+}
+
+resource "aws_route_table_association" "private-2" {
+  subnet_id      = aws_subnet.private-2.id
+  route_table_id = aws_route_table.private.id
+}
+
 
 # create eks cluster
 resource "aws_eks_cluster" "demo" {
@@ -137,9 +202,9 @@ resource "aws_eks_cluster" "demo" {
 }
 
 
-resource "aws_eks_node_group" "demo-1" {
+resource "aws_eks_node_group" "public" {
   cluster_name    = aws_eks_cluster.demo.name
-  node_group_name = "${var.NAME}-node-group"
+  node_group_name = "${var.NAME}-public-ng"
   node_role_arn   = var.node_group_role_arn
   subnet_ids      = [aws_subnet.public-1.id, aws_subnet.public-2.id, aws_subnet.public-3.id]
   instance_types  = ["t3.small"] # optional, default is "t3.medium"
@@ -151,6 +216,31 @@ resource "aws_eks_node_group" "demo-1" {
   labels = {
     environment = "dev",
     family      = "t3.small",
+    network     = "public"
+  }
+
+  scaling_config {
+    desired_size = 1
+    max_size     = 3
+    min_size     = 1
+  }
+
+  update_config {
+    max_unavailable = 1
+  }
+}
+
+resource "aws_eks_node_group" "private" {
+  cluster_name    = aws_eks_cluster.demo.name
+  node_group_name = "${var.NAME}-private-ng"
+  node_role_arn   = var.node_group_role_arn
+  subnet_ids      = [aws_subnet.private-1.id, aws_subnet.private-2.id]
+  instance_types  = ["t3.small"]
+
+  labels = {
+    family      = "t3.small",
+    environment = "test",
+    network     = "private"
   }
 
   scaling_config {
@@ -159,51 +249,7 @@ resource "aws_eks_node_group" "demo-1" {
     min_size     = 2
   }
 
-  update_config {
-    max_unavailable = 1
-  }
 }
-
-# resource "aws_eks_node_group" "demo-2" {
-#   cluster_name    = aws_eks_cluster.demo.name
-#   node_group_name = "${var.NAME}-node-group-2"
-#   node_role_arn   = var.node_group_role_arn
-#   subnet_ids      = [aws_subnet.public-1.id, aws_subnet.public-2.id, aws_subnet.public-3.id]
-#   instance_types  = ["t2.small"]
-
-#   labels = {
-#     family      = "t2.small",
-#     environment = "test",
-#   }
-
-#   scaling_config {
-#     desired_size = 1
-#     max_size     = 5
-#     min_size     = 1
-#   }
-
-# }
-
-# resource "aws_eks_node_group" "demo-3" {
-#   cluster_name    = aws_eks_cluster.demo.name
-#   node_group_name = "${var.NAME}-node-group-3"
-#   node_role_arn   = var.node_group_role_arn
-#   subnet_ids      = [aws_subnet.public-1.id, aws_subnet.public-2.id, aws_subnet.public-3.id]
-#   instance_types  = ["t2.small"]
-
-#   labels = {
-#     family      = "t2.small",
-#     environment = "dev",
-#     app         = "booking"
-#   }
-
-#   scaling_config {
-#     desired_size = 1
-#     max_size     = 5
-#     min_size     = 1
-#   }
-
-# }
 
 resource "aws_eks_access_entry" "access_1" {
   cluster_name  = aws_eks_cluster.demo.name
